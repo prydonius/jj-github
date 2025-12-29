@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/cbrewster/jj-github/internal/github"
 	"github.com/cbrewster/jj-github/internal/jj"
 )
 
@@ -15,6 +16,13 @@ func main() {
 		os.Exit(1)
 	}
 	slog.Info("remote", "remote", remote)
+
+	repo, err := github.GetRepoFromRemote(remote)
+	if err != nil {
+		slog.Error("parse remote", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("repo", "repo", repo)
 
 	changes, err := jj.GetChanges(os.Args[1:]...)
 	if err != nil {
