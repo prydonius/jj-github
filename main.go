@@ -49,18 +49,14 @@ func main() {
 
 	var branches []string
 	changesByID := make(map[string]*jj.Change)
+
+	slog.Info("pushing all commits")
+
 	for _, change := range changes {
 		branches = append(branches, change.GitPushBookmark)
-		changesByID[change.ID] = &change
-	}
-	prs, err := gh.GetPullRequestsForBranches(ctx, repo, branches)
-	if err != nil {
-		slog.Error("get pull requests", "error", err)
-		os.Exit(1)
-	}
 
-	slog.Info("Updating all branches")
-	for _, change := range changes {
+		changesByID[change.ID] = &change
+
 		if change.Description == "" {
 			slog.Error("change is missing description", "change", change.ID)
 			continue
@@ -75,6 +71,26 @@ func main() {
 		if err := jj.GitPush(change.ID); err != nil {
 			slog.Error("push change", "error", err)
 			os.Exit(1)
+		}
+	}
+
+	prs, err := gh.GetPullRequestsForBranches(ctx, repo, branches)
+	if err != nil {
+		slog.Error("get pull requests", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("updating pull requests")
+
+	for _, change := range changes {
+		if change.Description == "" {
+			slog.Error("change is missing description", "change", change.ID)
+			continue
+		}
+
+		if change.Immutable {
+			slog.Error("change is immutable", "change", change.ID)
+			continue
 		}
 
 		if _, ok := prs[change.GitPushBookmark]; !ok {
